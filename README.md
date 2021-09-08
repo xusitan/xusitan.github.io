@@ -14,6 +14,7 @@ Syntax highlighted code block
 # Header 1
 ## Header 2
 ### Header 3
+![image](https://user-images.githubusercontent.com/31794253/132487829-d787eb07-aaa4-454f-858d-e605eff4495b.png)
 
 - Bulleted
 - List
