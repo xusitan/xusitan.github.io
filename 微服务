@@ -1,1 +1,77 @@
+## 微服务初探
+### 服务发现（service-center）
+微服务的显著特征之一是需要一个服务注册中心，它提供注册机制，允许服务提供者将自己的信息登记到中心，提供发现机制，供服务消费者从中心查找服务提供者信息。服务注册中心解耦了服务提供者和服务发现者之间的关系，提供动态发现的能力，动态监控服务运行情况和服务依赖关系。
+![1a336f405b74c78f9be5503154acf872.png](evernotecid://1ADEC2B8-24EF-4E46-A060-7D11053842DB/appyinxiangcom/33391050/ENResource/p19)
 
+
+主要包含几个流程：
+* 服务向service-center注册信息
+* 服务向注册中心发送心跳，维持注册中心中该服务存活状态
+* 服务之间发送请求与返回响应进行通信
+![377a48b0d8d68630ee63f85f50e667e2.png](evernotecid://1ADEC2B8-24EF-4E46-A060-7D11053842DB/appyinxiangcom/33391050/ENResource/p20)
+
+**服务发现**
+首先创建一个go web项目，然后创建以下目录。
+``` go
+awesomProject
++-- server
+    +-- config
+        +-- chassis.yaml
+        +-- microservice.yaml
+    +-- main.go
++-- client
+    +-- config
+        +-- chassis.yaml
+        +-- microservice.yaml
+    +-- main.go
+
+```
+``` go
+# server/chassis.yaml
+cse:
+  service:
+    registry:
+      address: http://127.0.0.1:30100  #服务注册地址，用于服务注册
+  protocols:
+    rest:
+      listenAddress: 127.0.0.1:5002   #rest监听地址
+# server/microservice.yaml
+service_description:
+  name: RESTClient    #服务名称
+  version: 0.0.1
+
+# client/chassis.yaml
+cse:
+  service:
+    registry:
+      address: http://127.0.0.1:30100
+# client/microservice.yaml
+service_description:
+  name: RESTClient
+  version: 0.0.1
+```
+启动两个服务后可以在注册中心查看到
+evernotecid://1ADEC2B8-24EF-4E46-A060-7D11053842DB/appyinxiangcom/33391050/ENResource/p19
+现在新增一个服务node1, 增加服务间调用关系，可以在服务注册中心看到如下拓扑关系。该拓扑关系表示了服务之间的调用关系。
+evernotecid://1ADEC2B8-24EF-4E46-A060-7D11053842DB/appyinxiangcom/33391050/ENResource/p20
+
+### 流量控制
+限流指的是限制到达系统的并发请求数，既可以全局限制请求本服务的并发数，也可以对请求本服务的其他服务的请求数做针对性限流。server服务注册了一个rest接口，http://localhost:5002/sayhello/world/qwd在服务端增加限流配置
+```
+# server/chassis.yaml
+handler:
+    chain:
+      Provider:
+        default: ratelimiter-provider  # 调用链为限流服务端
+  flowcontrol:
+    Provider:
+      qps:
+        enabled: true  # 限流开关
+        global:
+          limit: 1   # 限流数量单位秒
+```
+
+前端页面一秒内多次请求出现如下响应，返回码429表示限流。
+![c0f7005320a0168c6a862cce11c04dd1.png](evernotecid://1ADEC2B8-24EF-4E46-A060-7D11053842DB/appyinxiangcom/33391050/ENResource/p25)
+
+通过类似配置，可以实现微服务的负载均衡、熔断降级、分布式调用链追踪等功能。
